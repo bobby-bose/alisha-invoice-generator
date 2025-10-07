@@ -59,6 +59,7 @@ class InvoiceForm(QWidget):
         self.fields = [
             "invoice_date", "invoice_no", "po_no", "ref_no", "our_ref_no",
             "bill_address", "line_no", "items", "qty", "units", "total",
+            "currency_sign",  # Added field
             "total_amount", "discount_percentage", "discount_amount", "received_details",
             "received_amount", "balance_amount", "country", "port_embarkation",
             "port_discharge", "date_by", "prepared_by", "verified_by", "authorized_by"
@@ -83,6 +84,8 @@ class InvoiceForm(QWidget):
             return "India"
         elif "port" in field_name:
             return "Nhava Sheva (JNPT)"
+        elif field_name == "currency_sign":
+            return "₹"  # Default currency
         elif "prepared_by" in field_name or "verified_by" in field_name or "authorized_by" in field_name or "date_by" in field_name:
             return "John Doe"
         else:

@@ -118,11 +118,12 @@ class InvoiceTable(QWidget):
                 item.setForeground(Qt.GlobalColor.black)
                 return item
                 
-            self.table.setItem(row_index, 0, make_item(doc.get("invoice_no", "")))
-            self.table.setItem(row_index, 1, make_item(doc.get("invoice_date", "")))
-            self.table.setItem(row_index, 2, make_item(doc.get("po_no", "")))
-            self.table.setItem(row_index, 3, make_item(doc.get("bill_address", "")))
-            self.table.setItem(row_index, 4, make_item(doc.get("total_amount", "")))
+            self.table.setItem(row_index, 0, make_item(doc.get("invoice_no", "")))      # Invoice No
+            self.table.setItem(row_index, 1, make_item(doc.get("invoice_date", "")))    # Invoice Date
+            self.table.setItem(row_index, 2, make_item(doc.get("po_no", "")))           # PO No
+            self.table.setItem(row_index, 3, make_item(doc.get("bill_address", "")))    # Bill Address
+            self.table.setItem(row_index, 4, make_item(doc.get("total_amount", "")))    # Total Amount
+       
 
             # Create a container frame for buttons
             def create_button_container(buttons):
