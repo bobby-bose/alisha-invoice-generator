@@ -63,8 +63,8 @@ def fetch_exporter_docs():
         client = MongoClient(MONGO_URL)
         db = client[DB_NAME]
         collection = db[COLLECTION_NAME]
-        docs = list(collection.find({"Exporter": {"$exists": True}}))  # only with "Exporter"
-        print(f"✅ {len(docs)} documents found with key 'Exporter'")
+        docs = list(collection.find({"exporter_ref": {"$exists": True}}))  # only with "Exporter"
+        print(f"✅ {len(docs)} documents found with key 'exporter_ref'")
         return docs
     except Exception as e:
         print("❌ MongoDB Error:", str(e))
@@ -126,7 +126,7 @@ class ExportTable(QWidget):
         self.table = QTableWidget()
         self.table.setColumnCount(8)
         self.table.setHorizontalHeaderLabels([
-            "Exporter", "Invoice No", "Date", "Total Invoice Value", "Total GST Value",
+            "exporter_ref", "iec", "order_no", "order_date", "tax_no",
             "Edit", "Hide", "Print"
         ])
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
@@ -144,11 +144,11 @@ class ExportTable(QWidget):
             row_position = self.table.rowCount()
             self.table.insertRow(row_position)
 
-            exporter = str(doc.get("Exporter", ""))
-            invoice_no = str(doc.get("Invoice No", ""))
-            date = str(doc.get("Date", ""))
-            total_invoice = str(doc.get("Total Invoice Value", ""))
-            total_gst = str(doc.get("Total GST Value", ""))
+            exporter = str(doc.get("exporter_ref", ""))
+            invoice_no = str(doc.get("iec", ""))
+            date = str(doc.get("order_no", ""))
+            total_invoice = str(doc.get("order_date", ""))
+            total_gst = str(doc.get("tax_no", ""))
 
             self.table.setItem(row_position, 0, QTableWidgetItem(exporter))
             self.table.setItem(row_position, 1, QTableWidgetItem(invoice_no))

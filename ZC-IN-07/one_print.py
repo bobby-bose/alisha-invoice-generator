@@ -90,7 +90,7 @@ def image_to_pdf(image_path, pdf_path):
 
 
 
-template_path = "docs/1.docx"
+template_path = "1.docx"
 json_path = "data_one.json"
 
     # Load data from JSON

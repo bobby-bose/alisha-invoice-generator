@@ -6,62 +6,35 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtGui import QFont, QPixmap
 from PyQt6.QtCore import Qt
-import database  # <-- your module to push data
+import database  # <-- your MongoDB module
 
-class PackingListForm(QWidget):
+class ExportForm(QWidget):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Packing List Form")
+        self.setWindowTitle("Export Form")
         self.setGeometry(100, 50, 1200, 900)
 
-        # ---------------- Facebook-style theme ----------------
+        # ---------------- Style ----------------
         self.setStyleSheet("""
-            QWidget {
-                background-color: #ffffff;
-                font-family: Arial;
-            }
-            QLabel {
-                color: #1c1e21;
-                font-weight: bold;
-            }
-            QLineEdit {
-                border: 1px solid #ccd0d5;
-                border-radius: 5px;
-                padding: 5px;
-                font-size: 13px;
-                color: black; 
-            }
-            QPushButton {
-                background-color: #1877f2;
-                color: white;
-                font-weight: bold;
-                font-size: 16px;
-                border-radius: 8px;
-            }
-            QPushButton:hover {
-                background-color: #166fe5;
-            }
-            QGroupBox {
-                border: 2px solid #ccd0d5;
-                border-radius: 12px;
-            }
-            QLabel#LogoLabel {
-                height:400;
-                width:400;
-                border: 2px solid #1877f2;
-                border-radius: 60px;
-                background-color: #f5f6f7;
-                padding: 10px;
-            }
+            QWidget { background-color: #ffffff; font-family: Arial; }
+            QLabel { color: #1c1e21; font-weight: bold; }
+            QLineEdit { border: 1px solid #ccd0d5; border-radius: 5px; padding: 5px; font-size: 13px; color: black; }
+            QPushButton { background-color: #1877f2; color: white; font-weight: bold; font-size: 16px; border-radius: 8px; }
+            QPushButton:hover { background-color: #166fe5; }
+            QGroupBox { border: 2px solid #ccd0d5; border-radius: 12px; }
+            QLabel#LogoLabel { height:400; width:400; border: 2px solid #1877f2; border-radius: 60px; background-color: #f5f6f7; padding: 10px; }
         """)
 
-        # ---------------- Form Fields (Packing List placeholders) ----------------
+        # ---------------- Fields ----------------
         self.fields = [
-            "consignee_address", "date", "po_no", "tax_no",
-            "packing_list_no", "delivery_address", "loding_port", "discharge_port",
-            "hs_code", "no_boxes", "item_number", "box_number",
-            "material", "qty", "dimension", "net_weight", "gross_weight",
-            "sum_net_weight", "sum_gross_weight"
+            "invoice_no", "exporter_ref", "date", "iec", "order_no", "order_date",
+            "other_reference", "delivery", "consignee_address", "tax_no", "country",
+            "final_destination", "destination", "terms", "contact_details", "lut_arn_no",
+            "pre_carriage", "place_receipt", "vessel_no", "port_loading", "port_Discharge",
+            "port_destination", "no_packages", "description", "units", "qty", "rate",
+            "amount", "taxable_value", "igst", "igst_amount", "total_amount",
+            "total_taxable_amount", "total_igst", "total_igst_amount", "amount_inwords",
+            "export_values", "total_packages", "gst_values", "invoice_values"
         ]
 
         self.controllers = {}
@@ -81,7 +54,6 @@ class PackingListForm(QWidget):
         header_layout = QHBoxLayout()
         header_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-        # Logo QLabel
         logo = QLabel()
         pixmap = QPixmap("wwe.jpg")
         if not pixmap.isNull():
@@ -92,19 +64,18 @@ class PackingListForm(QWidget):
         logo.setAlignment(Qt.AlignmentFlag.AlignCenter)
         header_layout.addWidget(logo)
 
-        # Company Info Layout
         company_layout = QVBoxLayout()
         company_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
         company_name = QLabel("ZAKA Controls & Devices")
         company_name.setFont(QFont("Arial", 30, QFont.Weight.Bold))
         company_name.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        description = QLabel("This is a Packing List Form. Fill the details below.")
+        description = QLabel("Fill the details for the export invoice below.")
         description.setFont(QFont("Arial", 20))
         description.setAlignment(Qt.AlignmentFlag.AlignCenter)
         company_layout.addWidget(company_name)
         company_layout.addWidget(description)
-
         header_layout.addLayout(company_layout)
+
         main_layout.addLayout(header_layout)
         main_layout.addSpacing(20)
 
@@ -122,7 +93,7 @@ class PackingListForm(QWidget):
             left_fields = self.fields[i:i+2]
             right_fields = self.fields[i+2:i+4]
 
-            # Left side fields
+            # Left side
             left_layout = QVBoxLayout()
             for field_name in left_fields:
                 left_layout.addLayout(self.build_field_layout(field_name))
@@ -131,7 +102,7 @@ class PackingListForm(QWidget):
             left_container.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
             row_layout.addWidget(left_container)
 
-            # Right side fields
+            # Right side
             right_layout = QVBoxLayout()
             for field_name in right_fields:
                 right_layout.addLayout(self.build_field_layout(field_name))
@@ -159,7 +130,7 @@ class PackingListForm(QWidget):
 
     def build_field_layout(self, field_name):
         layout = QVBoxLayout()
-        label = QLabel(field_name.replace("_", " ").title())
+        label = QLabel(field_name)
         label.setFont(QFont("Arial", 13, QFont.Weight.Bold))
         line_edit = QLineEdit()
         line_edit.setFont(QFont("Arial", 12))
@@ -186,18 +157,16 @@ class PackingListForm(QWidget):
         else:
             data = {field: controller.text() for field, controller in self.controllers.items()}
             print("Form Data:", data)
-
-            # Push to MongoDB using your second module
             database.push_to_mongo(data)
 
             msg = QMessageBox()
             msg.setIcon(QMessageBox.Icon.Information)
             msg.setWindowTitle("Success")
-            msg.setText("Packing List form submitted successfully and pushed to MongoDB!")
+            msg.setText("Form submitted successfully and pushed to MongoDB!")
             msg.exec()
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    window = PackingListForm()
+    window = ExportForm()
     window.show()
     sys.exit(app.exec())
