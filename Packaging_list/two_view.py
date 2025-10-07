@@ -6,7 +6,10 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtGui import QFont, QPixmap
 from PyQt6.QtCore import Qt
-from two_edit import PackingListFormEdit  # ✅ Updated import
+from two_edit import PackingListFormEdit  # Edit form
+import os
+import json
+from docxtpl import DocxTemplate  # <-- pip install docxtpl
 
 # ---------------- MongoDB Config ----------------
 MONGO_URL = "mongodb+srv://admin:admin@cluster.rnhig2f.mongodb.net/?retryWrites=true&w=majority&appName=cluster"
@@ -17,7 +20,7 @@ client = MongoClient(MONGO_URL)
 db = client[DB_NAME]
 collection = db[COLLECTION_NAME]
 
-
+# ---------------- Fetch Data ----------------
 def fetch_exporter_docs():
     try:
         docs = list(collection.find({"consignee_address": {"$exists": True}}))
@@ -27,12 +30,12 @@ def fetch_exporter_docs():
         print("❌ MongoDB Error:", str(e))
         return []
 
-
-class ExportTable(QWidget):
+# ---------------- UI Class ----------------
+class PackingListTable(QWidget):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Exporter Data Viewer")
-        self.setGeometry(100, 50, 1300, 900)
+        self.setWindowTitle("Packing List Viewer")
+        self.setGeometry(100, 50, 1400, 900)
 
         self.setStyleSheet("""
             QWidget { background-color: #ffffff; font-family: Arial; }
@@ -70,7 +73,7 @@ class ExportTable(QWidget):
         info_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
         name = QLabel("ZAKA Controls & Devices")
         name.setFont(QFont("Arial", 26, QFont.Weight.Bold))
-        desc = QLabel("Exporter Form Records (MongoDB)")
+        desc = QLabel("Packing List Records (MongoDB)")
         desc.setFont(QFont("Arial", 18))
         info_layout.addWidget(name)
         info_layout.addWidget(desc)
@@ -122,17 +125,16 @@ class ExportTable(QWidget):
 
             btn_print = QPushButton("🖨 Print")
             btn_print.setStyleSheet("background-color: #2196f3; color: white; font-weight: bold; border-radius: 6px;")
-            btn_print.clicked.connect(lambda _, d=doc: self.print_doc(d))
+            btn_print.clicked.connect(lambda _, d=doc: self.generate_json_and_docx(d))
             self.table.setCellWidget(row_index, 7, btn_print)
 
             self.table.setRowHeight(row_index, 60)
 
     def open_edit_form(self, doc):
-        """Open edit form and refresh table after update"""
         try:
             edit_window = PackingListFormEdit(str(doc["_id"]))
             self.edit_windows.append(edit_window)
-            edit_window.updated.connect(self.load_table_data)  # 🔔 Refresh table when update signal is emitted
+            edit_window.updated.connect(self.load_table_data)
             edit_window.show()
         except Exception as e:
             QMessageBox.critical(self, "Error", f"Failed to open edit form: {str(e)}")
@@ -141,13 +143,40 @@ class ExportTable(QWidget):
         self.table.hideRow(row)
         QMessageBox.information(self, "Hidden", "Row has been hidden from the table view.")
 
-    def print_doc(self, doc):
-        info = "\n".join([f"{k}: {v}" for k, v in doc.items() if k != "_id"])
-        QMessageBox.information(self, "Print Preview", info)
+    def generate_json_and_docx(self, doc):
+        """Single-step: Save JSON & generate DOCX"""
+        try:
+            data = {k: v for k, v in doc.items() if k != "_id"}
+
+            # Save JSON
+            json_filename = f"data_packing_list_{doc.get('packing_list_no', 'output')}.json"
+            json_path = os.path.join(os.path.dirname(__file__), json_filename)
+            with open(json_path, "w", encoding="utf-8") as f:
+                json.dump(data, f, ensure_ascii=False, indent=4)
+
+            # Load DOCX template
+            template_path = os.path.join(os.path.dirname(__file__), "2.docx")
+            if not os.path.exists(template_path):
+                QMessageBox.warning(self, "Template Missing", f"Template not found: {template_path}")
+                return
+
+            docx = DocxTemplate(template_path)
+            docx.render(data)
+
+            output_docx_filename = f"PackingList_{doc.get('packing_list_no', 'output')}.docx"
+            output_docx_path = os.path.join(os.path.dirname(__file__), output_docx_filename)
+            docx.save(output_docx_path)
+
+            QMessageBox.information(self, "Success",
+                f"JSON and DOCX generated successfully!\n\nJSON: {json_path}\nDOCX: {output_docx_path}")
+
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Failed to generate DOCX: {str(e)}")
 
 
+# ---------------- Run App ----------------
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    window = ExportTable()
+    window = PackingListTable()
     window.show()
     sys.exit(app.exec())

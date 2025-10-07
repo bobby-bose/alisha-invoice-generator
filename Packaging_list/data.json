@@ -1,0 +1,56 @@
+{
+    "consignee_address": "VSV4062",
+    "date": "CIGNL7095",
+    "po_no": "NXEMQAZ7697",
+    "tax_no": "ITOMK4916",
+    "packing_list_no": "EAO634",
+    "delivery_address": "JVP7502",
+    "loding_port": "ZXE7190",
+    "discharge_port": "CWS2964",
+    "hs_code": "JRO8192",
+    "no_boxes": "BRVIS7676",
+    "sum_net_weight": "UGSYR8892",
+    "sum_gross_weight": "UWYWMOX313",
+    "items": [
+        {
+            "item_number": "ACB5702",
+            "box_number": "ZOD2566",
+            "material": "GUK1572",
+            "qty": "VOC8276",
+            "dimension": "FMD183",
+            "net_weight": "CJN5728",
+            "gross_weight": "FUHLU9949"
+        },
+        {
+            "item_number": "JRIBF8797",
+            "box_number": "AAN2965",
+            "material": "YCPSRUH4769",
+            "qty": "ORYYGHS2845",
+            "dimension": "STUKDSR5671",
+            "net_weight": "MQHSESQ9358",
+            "gross_weight": "UPDATED"
+        },
+        {
+            "item_number": "FMPLVKN8228",
+            "box_number": "OVSSC6891",
+            "material": "CPGNRUI9725",
+            "qty": "ERQJA5119",
+            "dimension": "UDZ2765",
+            "net_weight": "VSCJTVR6926",
+            "gross_weight": "QQZIDOX5642"
+        },
+        {
+            "item_number": "OBCRFGF3397",
+            "box_number": "IEV6915",
+            "material": "VCNPILQ4498",
+            "qty": "XVAIELB2379",
+            "dimension": "OYANM9970",
+            "net_weight": "VEV972",
+            "gross_weight": "ZMHVGAP9041"
+        }
+    ],
+    "date_created": "2025-10-07",
+    "time_created": "11:05:23",
+    "last_updated_date": "2025-10-07",
+    "last_updated_time": "11:08:55"
+}

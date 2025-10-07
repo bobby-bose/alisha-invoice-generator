@@ -7,7 +7,8 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtGui import QFont, QPixmap
 from PyQt6.QtCore import Qt
 from three_edit import InvoiceFormEdit  # <-- import your edit page
-
+import json
+from sub_merge import perform_mail_merge
 # ---------------- MongoDB Config ----------------
 MONGO_URL = "mongodb+srv://admin:admin@cluster.rnhig2f.mongodb.net/?retryWrites=true&w=majority&appName=cluster"
 DB_NAME = "mamshi"
@@ -167,10 +168,43 @@ class InvoiceTable(QWidget):
         except Exception as e:
             QMessageBox.critical(self, "Error", f"Cannot open edit form: {str(e)}")
 
+    
+
     def print_invoice(self, doc):
-        QMessageBox.information(
-            self, "Print", f"Printing Invoice No: {doc.get('invoice_no', 'Unknown')}..."
-        )
+        from bson import ObjectId
+
+        def convert_objectid(doc):
+                """
+                Recursively convert ObjectId to string in a dict.
+                """
+                if isinstance(doc, dict):
+                    return {k: convert_objectid(v) for k, v in doc.items()}
+                elif isinstance(doc, list):
+                    return [convert_objectid(i) for i in doc]
+                elif isinstance(doc, ObjectId):
+                    return str(doc)
+                else:
+                    return doc
+
+
+        try:
+            doc_serializable = convert_objectid(doc)
+            # 1️⃣ Generate data.json from the MongoDB doc
+            with open("data.json", "w", encoding="utf-8") as f:
+                json.dump(doc_serializable, f, indent=4, ensure_ascii=False) 
+
+            # 2️⃣ Call the mail merge function
+            TEMPLATE_PATH = "3.docx"
+            OUTPUT_PATH = f"invoice_{doc.get('invoice_no','unknown')}.docx"
+
+            perform_mail_merge("data.json", TEMPLATE_PATH, OUTPUT_PATH)
+
+            QMessageBox.information(
+                self, "Success", f"Invoice generated successfully:\n{OUTPUT_PATH}"
+            )
+
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Cannot generate invoice: {str(e)}")
 
     def hide_row(self, row):
         self.table.hideRow(row)
