@@ -10,7 +10,7 @@ from bson.objectid import ObjectId
 from datetime import datetime
 
 # ---------------- MongoDB Config ----------------
-MONGO_URL = "mongodb+srv://admin:admin@cluster.rnhig2f.mongodb.net/?retryWrites=true&w=majority&appName=cluster"
+MONGO_URL = "mongodb+srv://username:password@cluster.rnhig2f.mongodb.net/?retryWrites=true&w=majority&appName=cluster"
 DB_NAME = "mamshi"
 COLLECTION_NAME = "report_two"
 

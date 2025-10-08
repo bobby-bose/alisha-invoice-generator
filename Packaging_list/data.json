@@ -1,56 +1,50 @@
 {
-    "consignee_address": "VSV4062",
-    "date": "CIGNL7095",
-    "po_no": "NXEMQAZ7697",
-    "tax_no": "ITOMK4916",
-    "packing_list_no": "EAO634",
-    "delivery_address": "JVP7502",
-    "loding_port": "ZXE7190",
-    "discharge_port": "CWS2964",
-    "hs_code": "JRO8192",
-    "no_boxes": "BRVIS7676",
-    "sum_net_weight": "UGSYR8892",
-    "sum_gross_weight": "UWYWMOX313",
+    "_id": {
+        "$oid": "68e4edbd12ad25d048244538"
+    },
+    "consignee_address": "TLJ3809",
+    "date": "VYKEOSG2933",
+    "po_no": "YZX7803",
+    "tax_no": "UXARA4540",
+    "packing_list_no": "UPDATED",
+    "delivery_address": "YUDXORH4742",
+    "loding_port": "XAIJJ2555",
+    "discharge_port": "TZTIM9378",
+    "hs_code": "BOB7128",
+    "no_boxes": "SHFVQ4412",
+    "sum_net_weight": "WTDBGRR2948",
+    "sum_gross_weight": "WYT213",
     "items": [
         {
-            "item_number": "ACB5702",
-            "box_number": "ZOD2566",
-            "material": "GUK1572",
-            "qty": "VOC8276",
-            "dimension": "FMD183",
-            "net_weight": "CJN5728",
-            "gross_weight": "FUHLU9949"
+            "item_number": "YLYZLCL2787",
+            "box_number": "ZADXV8309",
+            "material": "MHF5040",
+            "qty": "LPUAV9175",
+            "dimension": "IVT1987",
+            "net_weight": "GXLHH6625",
+            "gross_weight": "KKC7243"
         },
         {
-            "item_number": "JRIBF8797",
-            "box_number": "AAN2965",
-            "material": "YCPSRUH4769",
-            "qty": "ORYYGHS2845",
-            "dimension": "STUKDSR5671",
-            "net_weight": "MQHSESQ9358",
-            "gross_weight": "UPDATED"
+            "item_number": "KEKRF8016",
+            "box_number": "LWDCG2214",
+            "material": "WRKLI5186",
+            "qty": "ETV9815",
+            "dimension": "SXJFB4441",
+            "net_weight": "TXSGXCO7226",
+            "gross_weight": "JBX6920"
         },
         {
-            "item_number": "FMPLVKN8228",
-            "box_number": "OVSSC6891",
-            "material": "CPGNRUI9725",
-            "qty": "ERQJA5119",
-            "dimension": "UDZ2765",
-            "net_weight": "VSCJTVR6926",
-            "gross_weight": "QQZIDOX5642"
-        },
-        {
-            "item_number": "OBCRFGF3397",
-            "box_number": "IEV6915",
-            "material": "VCNPILQ4498",
-            "qty": "XVAIELB2379",
-            "dimension": "OYANM9970",
-            "net_weight": "VEV972",
-            "gross_weight": "ZMHVGAP9041"
+            "item_number": "MZMCU9951",
+            "box_number": "NCBZJ6167",
+            "material": "MVOBP4779",
+            "qty": "BQNZJ4004",
+            "dimension": "XKU9972",
+            "net_weight": "AKIEZTZ460",
+            "gross_weight": "YCFVL4386"
         }
     ],
     "date_created": "2025-10-07",
-    "time_created": "11:05:23",
+    "time_created": "16:08:53",
     "last_updated_date": "2025-10-07",
-    "last_updated_time": "11:08:55"
+    "last_updated_time": "16:24:33"
 }

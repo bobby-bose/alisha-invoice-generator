@@ -9,9 +9,11 @@ from PyQt6.QtGui import QFont, QPixmap
 from PyQt6.QtCore import Qt
 from Packaging_list.two_edit import PackingListFormEdit
 from Packaging_list.two import PackingListForm
-from Packaging_list.delete import start
-from Packaging_list.rec import fetch_and_save_document  # <-- external function
 import os
+from datetime import datetime
+from Packaging_list.delete import start
+import json
+from docx import Document
 
 # ---------------- MongoDB Config ----------------
 MONGO_URL = "mongodb+srv://username:password@cluster.rnhig2f.mongodb.net/?retryWrites=true&w=majority&appName=cluster"
@@ -49,12 +51,14 @@ class PackingListTable(QWidget):
             self.edit_windows.append(add_window)
             add_window.show()
         except Exception as e:
+            # Create a custom QMessageBox with black text
             msg_box = QMessageBox(self)
             msg_box.setIcon(QMessageBox.Icon.Critical)
             msg_box.setWindowTitle("Error")
             msg_box.setText(f"Failed to open Add form: {str(e)}")
             msg_box.setStyleSheet("QLabel { color: black; } QPushButton { color: black; }")
             msg_box.exec()
+
 
     def initUI(self):
         layout = QVBoxLayout()
@@ -84,6 +88,7 @@ class PackingListTable(QWidget):
         # Add button
         btn_add = QPushButton("➕  Add")
         btn_add.setFont(QFont("Arial", 16, QFont.Weight.Bold))
+        
         btn_add.setStyleSheet("background-color: #28a745; color: black; padding: 10px 20px; border-radius: 8px;")
         btn_add.clicked.connect(self.open_add_form)
         layout.addWidget(btn_add, alignment=Qt.AlignmentFlag.AlignCenter)
@@ -123,22 +128,23 @@ class PackingListTable(QWidget):
             # Edit button
             btn_edit = QPushButton("✏ Edit")
             btn_edit.setFont(QFont("Arial", 12))
-            btn_edit.setStyleSheet("color: black;")
+            btn_edit.setStyleSheet("color: black;")  # Edit button text black
             btn_edit.clicked.connect(partial(self.open_edit_form, doc))
             self.table.setCellWidget(row_index, 5, btn_edit)
 
             # Hide button
             btn_hide = QPushButton("🙈 Hide")
             btn_hide.setFont(QFont("Arial", 12))
-            btn_hide.setStyleSheet("color: black;")
+            btn_hide.setStyleSheet("color: black;")  # Hide button text black
             btn_hide.clicked.connect(partial(self.hide_row, row_index))
             self.table.setCellWidget(row_index, 6, btn_hide)
 
             # Print button
             btn_print = QPushButton("🖨 Print")
             btn_print.setFont(QFont("Arial", 12))
-            btn_print.setStyleSheet("color: black;")
-            btn_print.clicked.connect(partial(self.print_doc, doc))
+
+            btn_print.setStyleSheet("color: black;") # Print button text black
+            btn_print.clicked.connect(partial(self.generate_docx_in_outputs, doc))
             self.table.setCellWidget(row_index, 7, btn_print)
 
             self.table.setRowHeight(row_index, 60)
@@ -153,14 +159,54 @@ class PackingListTable(QWidget):
         self.table.hideRow(row)
         QMessageBox.information(self, "Hidden", "Row hidden from table.")
 
-    def print_doc(self, doc):
+    def generate_docx_in_outputs(self, doc):
         try:
-            print(doc["_id"])
-            fetch_and_save_document(str(doc["_id"]))
+            import os
+            import json
+            import datetime
+            from bson import ObjectId, Decimal128, DBRef, Timestamp
 
-            # Then call start() to generate DOCX/PDF
+            # ---------- Robust recursive cleaner ----------
+            def clean_mongo_doc(doc):
+                if isinstance(doc, dict):
+                    return {k: clean_mongo_doc(v) for k, v in doc.items()}
+                elif isinstance(doc, list):
+                    return [clean_mongo_doc(v) for v in doc]
+                elif isinstance(doc, ObjectId):
+                    return str(doc)
+                elif isinstance(doc, Decimal128):
+                    return float(doc.to_decimal())
+                elif isinstance(doc, (datetime.datetime, datetime.date)):
+                    return doc.isoformat()
+                elif isinstance(doc, DBRef):
+                    return str(doc)
+                elif isinstance(doc, Timestamp):
+                    return int(doc.time)
+                else:
+                    return doc
+
+            # ---------- Path to data.json ----------
+            base_dir = os.path.dirname(os.path.abspath(__file__))
+            json_path = os.path.join(base_dir, "data.json")
+
+            # ---------- Fetch the document ----------
+            doc_id = doc["_id"]
+            mongo_doc = collection.find_one({"_id": doc_id})
+            if not mongo_doc:
+                QMessageBox.warning(self, "Warning", f"No data found for this ID: {doc_id}")
+                return
+
+            # ---------- Clean it ----------
+            mongo_doc_cleaned = clean_mongo_doc(mongo_doc)
+
+            # ---------- Write to JSON ----------
+            with open(json_path, "w", encoding="utf-8") as f:
+                json.dump(mongo_doc_cleaned, f, ensure_ascii=False, indent=4)
+
+            print(f"📄 data.json updated for ID: {doc_id}")
+
+            # ---------- Generate DOCX ----------
             start()
-
             QMessageBox.information(self, "Success", "DOCX and PDF generated!")
 
         except Exception as e:

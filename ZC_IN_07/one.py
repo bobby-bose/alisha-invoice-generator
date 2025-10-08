@@ -6,40 +6,46 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtGui import QFont, QPixmap
 from PyQt6.QtCore import Qt
-import sys
 import os
-# import the module for database operations from the parent directory
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import database
 
-
-class PackingListForm(QWidget):
+class ExportForm(QWidget):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Packing List Form")
-        self.setGeometry(100, 50, 1400, 900)
+        self.setWindowTitle("Export Form")
+        self.setGeometry(100, 50, 1200, 900)
 
-        # ---------------- Form Fields ----------------
+        # ---------------- Style ----------------
+        self.setStyleSheet("""
+            QWidget { background-color: #ffffff; font-family: Arial; }
+            QLabel { color: #1c1e21; font-weight: bold; }
+            QLineEdit { border: 1px solid #ccd0d5; border-radius: 5px; padding: 5px; font-size: 13px; color: black; }
+            QPushButton { background-color: #1877f2; color: white; font-weight: bold; font-size: 16px; border-radius: 8px; }
+            QPushButton:hover { background-color: #166fe5; }
+            QGroupBox { border: 2px solid #ccd0d5; border-radius: 12px; }
+            QLabel#LogoLabel { height:400; width:400; border: 2px solid #1877f2; border-radius: 60px; background-color: #f5f6f7; padding: 10px; }
+        """)
+
+        # ---------------- Fields ----------------
         self.fields = [
-            "consignee_address", "date", "po_no", "tax_no",
-            "packing_list_no", "delivery_address", "loding_port", "discharge_port",
-            "hs_code", "no_boxes", "sum_net_weight", "sum_gross_weight"
+            "invoice_no", "exporter_ref", "date", "iec", "order_no", "order_date",
+            "other_reference", "delivery", "consignee_address", "tax_no", "country",
+            "final_destination", "destination", "terms", "contact_details", "lut_arn_no",
+            "pre_carriage", "place_receipt", "vessel_no", "port_loading", "port_Discharge",
+            "port_destination", "no_packages", "description", "units", "qty", "rate",
+            "amount", "taxable_value", "igst", "igst_amount", "total_amount",
+            "total_taxable_amount", "total_igst", "total_igst_amount", "amount_inwords",
+            "export_values", "total_packages", "gst_values", "invoice_values"
         ]
 
-        # item-level fields (repeatable)
-        self.item_fields = [
-            "item_number", "box_number", "material", "qty", "dimension", "net_weight", "gross_weight"
-        ]
-
-        self.controllers = {}  # main form fields
-        self.item_rows = []    # dynamic item rows
-
+        self.controllers = {}
         self.initUI()
 
-    def generate_dummy(self, length_options=[3, 5, 7]):
+    def generate_dummy(self, length_options=[3,5,7]):
         length = random.choice(length_options)
         letters = ''.join(random.choices('ABCDEFGHIJKLMNOPQRSTUVWXYZ', k=length))
-        number = str(random.randint(10, 9999))
+        number = str(random.randint(10,9999))
         return letters + number
 
     def initUI(self):
@@ -65,12 +71,13 @@ class PackingListForm(QWidget):
         company_name = QLabel("ZAKA Controls & Devices")
         company_name.setFont(QFont("Arial", 30, QFont.Weight.Bold))
         company_name.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        description = QLabel("Packing List Form - Fill all details below")
+        description = QLabel("Fill the details for the export invoice below.")
         description.setFont(QFont("Arial", 20))
         description.setAlignment(Qt.AlignmentFlag.AlignCenter)
         company_layout.addWidget(company_name)
         company_layout.addWidget(description)
         header_layout.addLayout(company_layout)
+
         main_layout.addLayout(header_layout)
         main_layout.addSpacing(20)
 
@@ -78,16 +85,17 @@ class PackingListForm(QWidget):
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll_content = QWidget()
-        self.scroll_layout = QVBoxLayout(scroll_content)
+        scroll_layout = QVBoxLayout(scroll_content)
 
-        # ---------------- Main Form Fields ----------------
-        for i in range(0, len(self.fields), 2):
+        # ---------------- Form Fields ----------------
+        for i in range(0, len(self.fields), 4):
             row_layout = QHBoxLayout()
             row_layout.setSpacing(30)
-            left_fields = self.fields[i:i+1]
-            right_fields = self.fields[i+1:i+2]
 
-            # Left
+            left_fields = self.fields[i:i+2]
+            right_fields = self.fields[i+2:i+4]
+
+            # Left side
             left_layout = QVBoxLayout()
             for field_name in left_fields:
                 left_layout.addLayout(self.build_field_layout(field_name))
@@ -96,7 +104,7 @@ class PackingListForm(QWidget):
             left_container.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
             row_layout.addWidget(left_container)
 
-            # Right
+            # Right side
             right_layout = QVBoxLayout()
             for field_name in right_fields:
                 right_layout.addLayout(self.build_field_layout(field_name))
@@ -105,24 +113,10 @@ class PackingListForm(QWidget):
             right_container.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
             row_layout.addWidget(right_container)
 
-            self.scroll_layout.addLayout(row_layout)
-            self.scroll_layout.addSpacing(15)
+            scroll_layout.addLayout(row_layout)
+            scroll_layout.addSpacing(15)
 
-        # ---------------- Item Rows Header ----------------
-        header = QHBoxLayout()
-        for field in self.item_fields:
-            label = QLabel(field.replace("_", " ").title())
-            label.setFont(QFont("Arial", 12, QFont.Weight.Bold))
-            label.setFixedWidth(150)
-            header.addWidget(label)
-        header.addWidget(QLabel(""))  # placeholder for + button
-        self.scroll_layout.addLayout(header)
-        self.scroll_layout.addSpacing(5)
-
-        # ---------------- First item row ----------------
-        self.add_item_row()
-
-        scroll_content.setLayout(self.scroll_layout)
+        scroll_content.setLayout(scroll_layout)
         scroll.setWidget(scroll_content)
         main_layout.addWidget(scroll)
 
@@ -136,10 +130,9 @@ class PackingListForm(QWidget):
 
         self.setLayout(main_layout)
 
-    # ---------------- Build main field layout ----------------
     def build_field_layout(self, field_name):
         layout = QVBoxLayout()
-        label = QLabel(field_name.replace("_", " ").title())
+        label = QLabel(field_name)
         label.setFont(QFont("Arial", 13, QFont.Weight.Bold))
         line_edit = QLineEdit()
         line_edit.setFont(QFont("Arial", 12))
@@ -150,42 +143,11 @@ class PackingListForm(QWidget):
         layout.addWidget(line_edit)
         return layout
 
-    # ---------------- Add a dynamic item row ----------------
-    def add_item_row(self):
-        row_layout = QHBoxLayout()
-        row_controllers = {}
-
-        for field in self.item_fields:
-            line_edit = QLineEdit()
-            line_edit.setFixedWidth(150)
-            line_edit.setText(self.generate_dummy())
-            row_layout.addWidget(line_edit)
-            row_controllers[field] = line_edit
-
-        # Add "+" button
-        add_btn = QPushButton("+")
-        add_btn.setFixedWidth(40)
-        add_btn.clicked.connect(self.add_item_row)
-        row_layout.addWidget(add_btn)
-
-        self.item_rows.append(row_controllers)
-        self.scroll_layout.addLayout(row_layout)
-        self.scroll_layout.addSpacing(5)
-
-    # ---------------- Submit Form ----------------
     def handle_submit(self):
         unfilled = []
-
-        # Check main fields
         for field, controller in self.controllers.items():
             if not controller.text().strip():
                 unfilled.append(field)
-
-        # Check item rows
-        for idx, row in enumerate(self.item_rows, start=1):
-            for field, controller in row.items():
-                if not controller.text().strip():
-                    unfilled.append(f"Row {idx} - {field}")
 
         if unfilled:
             msg = QMessageBox()
@@ -196,21 +158,17 @@ class PackingListForm(QWidget):
             msg.exec()
         else:
             data = {field: controller.text() for field, controller in self.controllers.items()}
-            data["items"] = [{field: controller.text() for field, controller in row.items()} for row in self.item_rows]
             print("Form Data:", data)
-
-            # Push to MongoDB using your module
             database.push_to_mongo(data)
 
             msg = QMessageBox()
             msg.setIcon(QMessageBox.Icon.Information)
             msg.setWindowTitle("Success")
-            msg.setText("Packing List form submitted successfully and pushed to MongoDB!")
+            msg.setText("Form submitted successfully and pushed to MongoDB!")
             msg.exec()
-
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    window = PackingListForm()
+    window = ExportForm()
     window.show()
     sys.exit(app.exec())
