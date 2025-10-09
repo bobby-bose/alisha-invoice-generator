@@ -2,7 +2,7 @@ from pymongo import MongoClient
 from datetime import datetime
 
 # 🔹 MongoDB connection details
-MONGO_URL = "mongodb+srv://username:password@cluster.rnhig2f.mongodb.net/?retryWrites=true&w=majority&appName=cluster"
+MONGO_URL = "mongodb+srv://admin:admin@cluster.rnhig2f.mongodb.net/?retryWrites=true&w=majority&appName=cluster"
 DB_NAME = "mamshi"       # you can rename this to whatever DB you want
 COLLECTION_NAME = "report_two"
 

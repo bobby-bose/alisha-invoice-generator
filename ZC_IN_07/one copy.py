@@ -1,28 +1,33 @@
 import sys
+import random
 from PyQt6.QtWidgets import (
     QApplication, QWidget, QLabel, QLineEdit, QPushButton, QVBoxLayout, QHBoxLayout,
     QGroupBox, QMessageBox, QScrollArea, QSizePolicy
 )
 from PyQt6.QtGui import QFont, QPixmap
 from PyQt6.QtCore import Qt
-from pymongo import MongoClient
-from bson.objectid import ObjectId
-from datetime import datetime
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+import database
 
-# ---------------- MongoDB Config ----------------
-MONGO_URL = "mongodb+srv://admin:admin@cluster.rnhig2f.mongodb.net/?retryWrites=true&w=majority&appName=cluster"
-DB_NAME = "mamshi"
-COLLECTION_NAME = "report_two"
-
-class ExportFormEdit(QWidget):
-    def __init__(self, doc):
+class ExportForm(QWidget):
+    def __init__(self):
         super().__init__()
-        self.setWindowTitle("Edit Export Form")
+        self.setWindowTitle("Export Form")
         self.setGeometry(100, 50, 1200, 900)
 
-        self.doc_id = doc.get("_id")  # MongoDB document _id
+        # ---------------- Style ----------------
+        self.setStyleSheet("""
+            QWidget { background-color: #ffffff; font-family: Arial; }
+            QLabel { color: #1c1e21; font-weight: bold; }
+            QLineEdit { border: 1px solid #ccd0d5; border-radius: 5px; padding: 5px; font-size: 13px; color: black; }
+            QPushButton { background-color: #1877f2; color: white; font-weight: bold; font-size: 16px; border-radius: 8px; }
+            QPushButton:hover { background-color: #166fe5; }
+            QGroupBox { border: 2px solid #ccd0d5; border-radius: 12px; }
+            QLabel#LogoLabel { height:400; width:400; border: 2px solid #1877f2; border-radius: 60px; background-color: #f5f6f7; padding: 10px; }
+        """)
 
-        # ---------------- Fields matching DOCX placeholders ----------------
+        # ---------------- Fields ----------------
         self.fields = [
             "invoice_no", "exporter_ref", "date", "iec", "order_no", "order_date",
             "other_reference", "delivery", "consignee_address", "tax_no", "country",
@@ -35,27 +40,19 @@ class ExportFormEdit(QWidget):
         ]
 
         self.controllers = {}
-        self.doc_data = self.fetch_doc_data()  # fetch latest data from MongoDB
         self.initUI()
 
-    # ---------------- Fetch MongoDB Data ----------------
-    def fetch_doc_data(self):
-        try:
-            client = MongoClient(MONGO_URL)
-            db = client[DB_NAME]
-            collection = db[COLLECTION_NAME]
-            doc = collection.find_one({"_id": ObjectId(self.doc_id)})
-            return doc if doc else {}
-        except Exception as e:
-            print("❌ MongoDB Error:", str(e))
-            return {}
+    def generate_dummy(self, length_options=[3,5,7]):
+        length = random.choice(length_options)
+        letters = ''.join(random.choices('ABCDEFGHIJKLMNOPQRSTUVWXYZ', k=length))
+        number = str(random.randint(10,9999))
+        return letters + number
 
-    # ---------------- UI Setup ----------------
     def initUI(self):
         main_layout = QVBoxLayout()
         main_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
 
-        # Header with logo
+        # ---------------- Header ----------------
         header_layout = QHBoxLayout()
         header_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
@@ -69,30 +66,28 @@ class ExportFormEdit(QWidget):
         logo.setAlignment(Qt.AlignmentFlag.AlignCenter)
         header_layout.addWidget(logo)
 
-        # Company info
         company_layout = QVBoxLayout()
         company_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
         company_name = QLabel("ZAKA Controls & Devices")
         company_name.setFont(QFont("Arial", 30, QFont.Weight.Bold))
         company_name.setAlignment(Qt.AlignmentFlag.AlignCenter)
-
-        description = QLabel("Edit the export form below")
+        description = QLabel("Fill the details for the export invoice below.")
         description.setFont(QFont("Arial", 20))
         description.setAlignment(Qt.AlignmentFlag.AlignCenter)
-
         company_layout.addWidget(company_name)
         company_layout.addWidget(description)
         header_layout.addLayout(company_layout)
+
         main_layout.addLayout(header_layout)
         main_layout.addSpacing(20)
 
-        # Scroll area for form
+        # ---------------- Scroll Area ----------------
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll_content = QWidget()
         scroll_layout = QVBoxLayout(scroll_content)
 
-        # Create form fields in rows of 4
+        # ---------------- Form Fields ----------------
         for i in range(0, len(self.fields), 4):
             row_layout = QHBoxLayout()
             row_layout.setSpacing(30)
@@ -125,8 +120,8 @@ class ExportFormEdit(QWidget):
         scroll.setWidget(scroll_content)
         main_layout.addWidget(scroll)
 
-        # Submit button
-        submit_btn = QPushButton("Update")
+        # ---------------- Submit Button ----------------
+        submit_btn = QPushButton("Submit")
         submit_btn.setFixedHeight(45)
         submit_btn.setFixedWidth(300)
         submit_btn.clicked.connect(self.handle_submit)
@@ -141,17 +136,13 @@ class ExportFormEdit(QWidget):
         label.setFont(QFont("Arial", 13, QFont.Weight.Bold))
         line_edit = QLineEdit()
         line_edit.setFont(QFont("Arial", 12))
+        line_edit.setText(self.generate_dummy())
         line_edit.setFixedHeight(30)
-
-        # Preload value from MongoDB
-        line_edit.setText(str(self.doc_data.get(field_name, "")))
         self.controllers[field_name] = line_edit
-
         layout.addWidget(label)
         layout.addWidget(line_edit)
         return layout
 
-    # ---------------- Submit / Update ----------------
     def handle_submit(self):
         unfilled = []
         for field, controller in self.controllers.items():
@@ -167,25 +158,17 @@ class ExportFormEdit(QWidget):
             msg.exec()
         else:
             data = {field: controller.text() for field, controller in self.controllers.items()}
+            print("Form Data:", data)
+            database.push_to_mongo(data)
 
-            # Update MongoDB document
-            try:
-                client = MongoClient(MONGO_URL)
-                db = client[DB_NAME]
-                collection = db[COLLECTION_NAME]
-                data["last_updated_date"] = datetime.now().strftime("%Y-%m-%d")
-                data["last_updated_time"] = datetime.now().strftime("%H:%M:%S")
-
-                collection.update_one({"_id": ObjectId(self.doc_id)}, {"$set": data})
-                QMessageBox.information(self, "Success", "Document updated successfully!")
-                self.close()
-            except Exception as e:
-                QMessageBox.critical(self, "Error", f"Failed to update MongoDB: {str(e)}")
+            msg = QMessageBox()
+            msg.setIcon(QMessageBox.Icon.Information)
+            msg.setWindowTitle("Success")
+            msg.setText("Form submitted successfully and pushed to MongoDB!")
+            msg.exec()
 
 if __name__ == "__main__":
-    # Example usage: pass a dict with "_id" of the document to edit
     app = QApplication(sys.argv)
-    dummy_doc = {"_id": "64f9b5c5e3f2a1b2c3456789"}  # Replace with a real ObjectId
-    window = ExportFormEdit(dummy_doc)
+    window = ExportForm()
     window.show()
     sys.exit(app.exec())

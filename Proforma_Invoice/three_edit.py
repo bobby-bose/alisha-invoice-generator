@@ -1,161 +1,147 @@
-import sys
 from PyQt6.QtWidgets import (
-    QApplication, QWidget, QLabel, QLineEdit, QPushButton, QVBoxLayout, QHBoxLayout,
-    QGroupBox, QMessageBox, QScrollArea, QSizePolicy
+    QApplication, QWidget, QLabel, QLineEdit, QTextEdit, QPushButton, QVBoxLayout, QHBoxLayout, QMessageBox, QTableWidget, QTableWidgetItem
 )
-from PyQt6.QtGui import QFont, QPixmap
-from PyQt6.QtCore import Qt, pyqtSignal
+from PyQt6.QtCore import Qt
 from pymongo import MongoClient
 from bson.objectid import ObjectId
+import sys
 from datetime import datetime
 
-# ---------------- MongoDB Config ----------------
-MONGO_URL = "mongodb+srv://username:password@cluster.rnhig2f.mongodb.net/?retryWrites=true&w=majority&appName=cluster"
+# 🔹 MongoDB Config
+MONGO_URL = "mongodb+srv://admin:admin@cluster.rnhig2f.mongodb.net/?retryWrites=true&w=majority&appName=cluster"
 DB_NAME = "mamshi"
 COLLECTION_NAME = "report_two"
+DOCUMENT_ID = "68e79e7912f4d0a21dfe0399"
 
-# ---------------- Placeholders ----------------
-PLACEHOLDERS = [
-    "invoice_date", "invoice_no", "po_no", "ref_no", "our_ref_no",
-    "bill_address", "line_no", "items", "qty", "units", "total",
-    "total_amount", "discount_percentage", "discount_amount", "received_details",
-    "received_amount", "balance_amount", "country", "port_embarkation",
-    "port_discharge", "date_by", "prepared_by", "verified_by", "authorized_by"
-]
-
-class InvoiceFormEdit(QWidget):
-    updated = pyqtSignal()  # Signal to notify main window
-
-    def __init__(self, doc_id):
+class EditInvoiceForm(QWidget):
+    def __init__(self):
         super().__init__()
-        self.doc_id = doc_id
-        self.setWindowTitle("Edit Invoice Form")
-        self.setGeometry(100, 50, 1200, 900)
+        self.db = MongoClient(MONGO_URL)[DB_NAME][COLLECTION_NAME]
+        self.doc = self.db.find_one({"_id": ObjectId(DOCUMENT_ID)})
 
-        self.controllers = {}
-        self.doc_data = self.fetch_doc_data()
+        if not self.doc:
+            QMessageBox.critical(self, "Error", f"No document found with ID {DOCUMENT_ID}")
+            sys.exit(1)
+
         self.initUI()
 
-    def fetch_doc_data(self):
-        """Fetch document from MongoDB"""
-        try:
-            client = MongoClient(MONGO_URL)
-            db = client[DB_NAME]
-            collection = db[COLLECTION_NAME]
-            doc = collection.find_one({"_id": ObjectId(self.doc_id)})
-            return doc if doc else {}
-        except Exception as e:
-            print("❌ MongoDB Error:", str(e))
-            return {}
-
     def initUI(self):
-        main_layout = QVBoxLayout()
-        main_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+        self.setWindowTitle("Edit Invoice Form")
+        self.resize(900, 700)
 
-        # ---------- Header ----------
-        header_layout = QHBoxLayout()
-        header_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
-
-        logo = QLabel()
-        pixmap = QPixmap("wwe.jpg")
-        if not pixmap.isNull():
-            pixmap = pixmap.scaled(250, 250, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
-            logo.setPixmap(pixmap)
-        else:
-            logo.setText("No Logo")
-        header_layout.addWidget(logo)
-
-        company_name = QLabel("ZAKA Controls & Devices — Edit Invoice")
-        company_name.setFont(QFont("Arial", 26, QFont.Weight.Bold))
-        header_layout.addWidget(company_name)
-        main_layout.addLayout(header_layout)
-        main_layout.addSpacing(20)
-
-        # ---------- Scroll Area ----------
-        scroll = QScrollArea()
-        scroll.setWidgetResizable(True)
-        scroll_content = QWidget()
-        scroll_layout = QVBoxLayout(scroll_content)
-
-        # Display fields in rows of 4 (2 columns per row)
-        for i in range(0, len(PLACEHOLDERS), 4):
-            row_layout = QHBoxLayout()
-            row_layout.setSpacing(30)
-
-            for field_group in [PLACEHOLDERS[i:i+2], PLACEHOLDERS[i+2:i+4]]:
-                group_layout = QVBoxLayout()
-                for field_name in field_group:
-                    group_layout.addLayout(self.build_field_layout(field_name))
-                group_box = QGroupBox()
-                group_box.setLayout(group_layout)
-                group_box.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
-                row_layout.addWidget(group_box)
-
-            scroll_layout.addLayout(row_layout)
-            scroll_layout.addSpacing(15)
-
-        scroll.setWidget(scroll_content)
-        main_layout.addWidget(scroll)
-
-        # ---------- Submit Button ----------
-        submit_btn = QPushButton("✅ Update Invoice")
-        submit_btn.setFixedHeight(45)
-        submit_btn.setFixedWidth(300)
-        submit_btn.setStyleSheet(
-            "background-color: #28a745; color: white; font-weight: bold; border-radius: 8px;"
-        )
-        submit_btn.clicked.connect(self.handle_submit)
-        main_layout.addWidget(submit_btn, alignment=Qt.AlignmentFlag.AlignCenter)
-        main_layout.addSpacing(20)
-
-        self.setLayout(main_layout)
-
-    def build_field_layout(self, field_name):
         layout = QVBoxLayout()
-        # Label shows the placeholder key exactly as-is
-        label = QLabel(field_name)
-        label.setFont(QFont("Arial", 13, QFont.Weight.Bold))
-        line_edit = QLineEdit()
-        line_edit.setFont(QFont("Arial", 12))
-        line_edit.setFixedHeight(30)
 
-        # Load MongoDB value using the same key
-        line_edit.setText(str(self.doc_data.get(field_name, "")))
+        # --- Basic Fields ---
+        self.date_edit = QLineEdit(self.doc.get("date", ""))
+        self.invoice_no_edit = QLineEdit(self.doc.get("invoice_no", ""))
+        self.eo_number_edit = QLineEdit(self.doc.get("eo_number", ""))
+        self.your_ref_edit = QLineEdit(self.doc.get("your_reference_no", ""))
+        self.our_ref_edit = QLineEdit(self.doc.get("our_reference_no", ""))
+        self.supplier_address_edit = QTextEdit(self.doc.get("supplier_address", ""))
+        self.bill_to_address_edit = QTextEdit(self.doc.get("bill_to_address", ""))
 
-        self.controllers[field_name] = line_edit
-        layout.addWidget(label)
-        layout.addWidget(line_edit)
-        return layout
+        layout.addWidget(QLabel("Date"))
+        layout.addWidget(self.date_edit)
+        layout.addWidget(QLabel("Invoice No"))
+        layout.addWidget(self.invoice_no_edit)
+        layout.addWidget(QLabel("EO Number"))
+        layout.addWidget(self.eo_number_edit)
+        layout.addWidget(QLabel("Your Reference No"))
+        layout.addWidget(self.your_ref_edit)
+        layout.addWidget(QLabel("Our Reference No"))
+        layout.addWidget(self.our_ref_edit)
 
-    def handle_submit(self):
-        # Validate all fields are filled
-        unfilled = [f for f, c in self.controllers.items() if not c.text().strip()]
-        if unfilled:
-            QMessageBox.warning(self, "Unfilled Fields", f"Please fill: {', '.join(unfilled)}")
-            return
+        # --- Table for Line Items ---
+        layout.addWidget(QLabel("Line Items"))
+        self.table = QTableWidget()
+        self.table.setColumnCount(6)
+        self.table.setHorizontalHeaderLabels(["Line No", "Part No", "Description", "Qty", "Unit Rate", "Total"])
+        layout.addWidget(self.table)
 
-        # Prepare data for MongoDB update
-        data = {f: c.text() for f, c in self.controllers.items()}
-        data["last_updated_date"] = datetime.now().strftime("%Y-%m-%d")
-        data["last_updated_time"] = datetime.now().strftime("%H:%M:%S")
+        self.load_table_data()
 
-        # Update MongoDB
+        # --- Totals ---
+        self.total_edit = QLineEdit(self.doc.get("total_amount", ""))
+        self.receivable_edit = QLineEdit(self.doc.get("receivable_amount", ""))
+        self.received_edit = QLineEdit(self.doc.get("received_amount", ""))
+        self.balance_edit = QLineEdit(self.doc.get("balance_amount", ""))
+        self.received_edit.textChanged.connect(self.update_balance)
+
+        layout.addWidget(QLabel("Total Amount"))
+        layout.addWidget(self.total_edit)
+        layout.addWidget(QLabel("Receivable Amount"))
+        layout.addWidget(self.receivable_edit)
+        layout.addWidget(QLabel("Received Amount"))
+        layout.addWidget(self.received_edit)
+        layout.addWidget(QLabel("Balance Amount"))
+        layout.addWidget(self.balance_edit)
+
+        # --- Buttons ---
+        save_btn = QPushButton("💾 Save Changes")
+        save_btn.clicked.connect(self.save_to_db)
+        layout.addWidget(save_btn)
+
+        self.setLayout(layout)
+
+    def load_table_data(self):
+        """Load table rows from MongoDB line_items."""
+        items = self.doc.get("line_items", [])
+        self.table.setRowCount(len(items))
+        for i, item in enumerate(items):
+            self.table.setItem(i, 0, QTableWidgetItem(str(item.get("line_no", ""))))
+            self.table.setItem(i, 1, QTableWidgetItem(item.get("part_number", "")))
+            self.table.setItem(i, 2, QTableWidgetItem(item.get("description", "")))
+            self.table.setItem(i, 3, QTableWidgetItem(str(item.get("quantity", ""))))
+            self.table.setItem(i, 4, QTableWidgetItem(str(item.get("unit_rate", ""))))
+            self.table.setItem(i, 5, QTableWidgetItem(str(item.get("total", ""))))
+
+    def update_balance(self):
+        """Recalculate balance when received amount changes."""
         try:
-            client = MongoClient(MONGO_URL)
-            db = client[DB_NAME]
-            collection = db[COLLECTION_NAME]
-            collection.update_one({"_id": ObjectId(self.doc_id)}, {"$set": data})
-            QMessageBox.information(self, "Success", "✅ Invoice updated successfully!")
-            self.updated.emit()
-            self.close()
-        except Exception as e:
-            QMessageBox.critical(self, "Error", f"Failed to update: {str(e)}")
+            receivable = float(self.receivable_edit.text() or 0)
+            received = float(self.received_edit.text() or 0)
+            balance = receivable - received
+            self.balance_edit.setText(f"{balance:.2f}")
+        except ValueError:
+            self.balance_edit.setText("Invalid")
 
+    def save_to_db(self):
+        """Update existing MongoDB document with new values."""
+        updated_doc = {
+            "date": self.date_edit.text(),
+            "invoice_no": self.invoice_no_edit.text(),
+            "eo_number": self.eo_number_edit.text(),
+            "your_reference_no": self.your_ref_edit.text(),
+            "our_reference_no": self.our_ref_edit.text(),
+            "supplier_address": self.supplier_address_edit.toPlainText(),
+            "bill_to_address": self.bill_to_address_edit.toPlainText(),
+            "total_amount": self.total_edit.text(),
+            "receivable_amount": self.receivable_edit.text(),
+            "received_amount": self.received_edit.text(),
+            "balance_amount": self.balance_edit.text(),
+            "last_updated": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        }
 
-# ---------------- Run Example ----------------
+        # Save table data back to list
+        line_items = []
+        for row in range(self.table.rowCount()):
+            line = {
+                "line_no": self.table.item(row, 0).text() if self.table.item(row, 0) else "",
+                "part_number": self.table.item(row, 1).text() if self.table.item(row, 1) else "",
+                "description": self.table.item(row, 2).text() if self.table.item(row, 2) else "",
+                "quantity": self.table.item(row, 3).text() if self.table.item(row, 3) else "",
+                "unit_rate": self.table.item(row, 4).text() if self.table.item(row, 4) else "",
+                "total": self.table.item(row, 5).text() if self.table.item(row, 5) else "",
+            }
+            line_items.append(line)
+
+        updated_doc["line_items"] = line_items
+
+        self.db.update_one({"_id": ObjectId(DOCUMENT_ID)}, {"$set": updated_doc})
+        QMessageBox.information(self, "✅ Success", "Invoice updated successfully in MongoDB!")
+
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    # Replace with a valid MongoDB document ID to test
-    window = InvoiceFormEdit("68e4ae3c7453ccdbd92b653d")
+    window = EditInvoiceForm()
     window.show()
     sys.exit(app.exec())

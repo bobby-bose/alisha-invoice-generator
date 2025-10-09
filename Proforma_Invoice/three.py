@@ -1,100 +1,37 @@
 import sys
-import random
 from PyQt6.QtWidgets import (
-    QApplication, QWidget, QLabel, QLineEdit, QPushButton, QVBoxLayout, QHBoxLayout,
-    QGroupBox, QMessageBox, QScrollArea, QSizePolicy
+    QApplication, QWidget, QLabel, QLineEdit, QTextEdit, QPushButton,
+    QVBoxLayout, QHBoxLayout, QGroupBox, QMessageBox, QScrollArea,
+    QTableWidget, QTableWidgetItem, QComboBox, QDateEdit
 )
 from PyQt6.QtGui import QFont, QPixmap
-from PyQt6.QtCore import Qt
-# import the module for database operations from the parent directory
+from PyQt6.QtCore import Qt, QDate
+import inflect
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import database
+
+p = inflect.engine()
 
 class InvoiceForm(QWidget):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Invoice Form")
-        self.setGeometry(100, 50, 1200, 900)
-
-        # ---------------- Facebook-style theme ----------------
-        self.setStyleSheet("""
-            QWidget {
-                background-color: #ffffff;
-                font-family: Arial;
-            }
-            QLabel {
-                color: #1c1e21;
-                font-weight: bold;
-            }
-            QLineEdit {
-                border: 1px solid #ccd0d5;
-                border-radius: 5px;
-                padding: 5px;
-                font-size: 13px;
-                color: black; 
-            }
-            QPushButton {
-                background-color: #1877f2;
-                color: white;
-                font-weight: bold;
-                font-size: 16px;
-                border-radius: 8px;
-            }
-            QPushButton:hover {
-                background-color: #166fe5;
-            }
-            QGroupBox {
-                border: 2px solid #ccd0d5;
-                border-radius: 12px;
-            }
-            QLabel#LogoLabel {
-                height:400;
-                width:400;
-                border: 2px solid #1877f2;
-                border-radius: 60px;
-                background-color: #f5f6f7;
-                padding: 10px;
-            }
-        """)
-
-        # ---------------- Form Fields (Invoice placeholders) ----------------
-        self.fields = [
-            "invoice_date", "invoice_no", "po_no", "ref_no", "our_ref_no",
-            "bill_address", "line_no", "items", "qty", "units", "total",
-            "currency_sign",  # Added field
-            "total_amount", "discount_percentage", "discount_amount", "received_details",
-            "received_amount", "balance_amount", "country", "port_embarkation",
-            "port_discharge", "date_by", "prepared_by", "verified_by", "authorized_by"
-        ]
-
+        self.setGeometry(100, 50, 1300, 950)
         self.controllers = {}
         self.initUI()
 
-    def generate_dummy(self, field_name):
-        """Generate more realistic dummy values based on field type."""
-        if "date" in field_name:
-            return f"0{random.randint(1,9)}-{random.randint(1,12)}-2025"
-        elif "no" in field_name or "line" in field_name:
-            return str(random.randint(1,100))
-        elif "qty" in field_name or "amount" in field_name or "total" in field_name or "balance" in field_name or "discount" in field_name:
-            return str(round(random.uniform(10,1000),2))
-        elif "units" in field_name:
-            return "PCS"
-        elif "items" in field_name or "bill_address" in field_name:
-            return "Sample Item Description"
-        elif "country" in field_name:
-            return "India"
-        elif "port" in field_name:
-            return "Nhava Sheva (JNPT)"
-        elif field_name == "currency_sign":
-            return "₹"  # Default currency
-        elif "prepared_by" in field_name or "verified_by" in field_name or "authorized_by" in field_name or "date_by" in field_name:
-            return "John Doe"
-        else:
-            return ''.join(random.choices("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789", k=5))
-
     def initUI(self):
+        self.setStyleSheet("""
+            QWidget { background-color: #ffffff; font-family: Arial; color: black; }
+            QLabel { font-weight: bold; color: black; }
+            QLineEdit, QTextEdit, QDateEdit, QComboBox { border: 1px solid #000000; border-radius: 5px; padding: 5px; font-size: 13px; color: black; }
+            QPushButton { background-color: #1877f2; color: white; font-weight: bold; font-size: 16px; border-radius: 8px; padding: 6px 15px; }
+            QPushButton:hover { background-color: #166fe5; }
+            QGroupBox { border: 2px solid #000000; border-radius: 12px; font-size: 16px; font-weight: bold; }
+            QTableWidget { gridline-color: #ccd0d5; font-size: 14px; }
+        """)
+
         main_layout = QVBoxLayout()
         main_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
 
@@ -102,73 +39,50 @@ class InvoiceForm(QWidget):
         header_layout = QHBoxLayout()
         header_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-        # Logo QLabel
         logo = QLabel()
         pixmap = QPixmap("wwe.jpg")
         if not pixmap.isNull():
-            pixmap = pixmap.scaled(350, 350, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+            pixmap = pixmap.scaled(250, 250, Qt.AspectRatioMode.KeepAspectRatio)
             logo.setPixmap(pixmap)
         else:
             logo.setText("No Logo")
         logo.setAlignment(Qt.AlignmentFlag.AlignCenter)
         header_layout.addWidget(logo)
 
-        # Company Info Layout
         company_layout = QVBoxLayout()
         company_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
         company_name = QLabel("ZAKA Controls & Devices")
-        company_name.setFont(QFont("Arial", 30, QFont.Weight.Bold))
+        company_name.setFont(QFont("Arial", 28, QFont.Weight.Bold))
         company_name.setAlignment(Qt.AlignmentFlag.AlignCenter)
         description = QLabel("This is an Invoice Form. Fill the details below.")
-        description.setFont(QFont("Arial", 20))
+        description.setFont(QFont("Arial", 18))
         description.setAlignment(Qt.AlignmentFlag.AlignCenter)
         company_layout.addWidget(company_name)
         company_layout.addWidget(description)
-
         header_layout.addLayout(company_layout)
         main_layout.addLayout(header_layout)
-        main_layout.addSpacing(20)
+        main_layout.addSpacing(15)
 
         # ---------------- Scroll Area ----------------
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll_content = QWidget()
-        scroll_layout = QVBoxLayout(scroll_content)
+        self.scroll_layout = QVBoxLayout(scroll_content)
 
-        # ---------------- Form Fields ----------------
-        for i in range(0, len(self.fields), 4):
-            row_layout = QHBoxLayout()
-            row_layout.setSpacing(30)
+        # ---------------- Top Fields ----------------
+        self.add_top_fields()
 
-            left_fields = self.fields[i:i+2]
-            right_fields = self.fields[i+2:i+4]
+        # ---------------- Line Items ----------------
+        self.add_line_items_table()
 
-            # Left side fields
-            left_layout = QVBoxLayout()
-            for field_name in left_fields:
-                left_layout.addLayout(self.build_field_layout(field_name))
-            left_container = QGroupBox()
-            left_container.setLayout(left_layout)
-            left_container.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
-            row_layout.addWidget(left_container)
+        # ---------------- Totals Section ----------------
+        self.add_totals_section()
 
-            # Right side fields
-            right_layout = QVBoxLayout()
-            for field_name in right_fields:
-                right_layout.addLayout(self.build_field_layout(field_name))
-            right_container = QGroupBox()
-            right_container.setLayout(right_layout)
-            right_container.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
-            row_layout.addWidget(right_container)
-
-            scroll_layout.addLayout(row_layout)
-            scroll_layout.addSpacing(15)
-
-        scroll_content.setLayout(scroll_layout)
+        scroll_content.setLayout(self.scroll_layout)
         scroll.setWidget(scroll_content)
         main_layout.addWidget(scroll)
 
-        # ---------------- Submit Button ----------------
+        # ---------------- Submit ----------------
         submit_btn = QPushButton("Submit")
         submit_btn.setFixedHeight(45)
         submit_btn.setFixedWidth(300)
@@ -178,44 +92,273 @@ class InvoiceForm(QWidget):
 
         self.setLayout(main_layout)
 
-    def build_field_layout(self, field_name):
+    def add_top_fields(self):
+        fields_layout = QVBoxLayout()
+
+        # Invoice Date
+        date_layout = QVBoxLayout()
+        date_label = QLabel("Invoice Date")
+        self.date_edit = QDateEdit()
+        self.date_edit.setCalendarPopup(True)
+        self.date_edit.setDate(QDate.currentDate())
+        date_layout.addWidget(date_label)
+        date_layout.addWidget(self.date_edit)
+        fields_layout.addLayout(date_layout)
+
+        # Invoice / Reference Numbers
+        numbers_layout = QHBoxLayout()
+        for label_text in ["Invoice No", "EO Number", "Your Reference No", "Our Reference No"]:
+            v = QVBoxLayout()
+            label = QLabel(label_text)
+            line_edit = QLineEdit()
+            line_edit.setFixedHeight(30)
+            v.addWidget(label)
+            v.addWidget(line_edit)
+            numbers_layout.addLayout(v)
+            self.controllers[label_text.lower().replace(" ", "_")] = line_edit
+        fields_layout.addLayout(numbers_layout)
+
+        # Supplier / Bill To (5 rows)
+        addr_layout = QHBoxLayout()
+        for label_text in ["Supplier Address", "Bill To Address"]:
+            v = QVBoxLayout()
+            label = QLabel(label_text)
+            text_edit = QTextEdit()
+            text_edit.setFixedHeight(120)  # approx 5 rows
+            v.addWidget(label)
+            v.addWidget(text_edit)
+            addr_layout.addLayout(v)
+            self.controllers[label_text.lower().replace(" ", "_")] = text_edit
+        fields_layout.addLayout(addr_layout)
+        self.scroll_layout.addLayout(fields_layout)
+        self.scroll_layout.addSpacing(15)
+
+    def add_line_items_table(self):
+        group = QGroupBox("Line Items")
         layout = QVBoxLayout()
-        label = QLabel(field_name.replace("_", " ").title())
-        label.setFont(QFont("Arial", 13, QFont.Weight.Bold))
-        line_edit = QLineEdit()
-        line_edit.setFont(QFont("Arial", 12))
-        line_edit.setText(self.generate_dummy(field_name))
-        line_edit.setFixedHeight(30)
-        self.controllers[field_name] = line_edit
-        layout.addWidget(label)
-        layout.addWidget(line_edit)
-        return layout
+
+        self.table = QTableWidget(0, 6)
+        self.table.setHorizontalHeaderLabels(["Line No", "Part Number", "Description", "Quantity", "Unit Rate", "Total"])
+        self.table.horizontalHeader().setStretchLastSection(True)
+        self.table.horizontalHeader().setDefaultSectionSize(200)
+        self.table.setSizeAdjustPolicy(QTableWidget.SizeAdjustPolicy.AdjustToContents)  # Auto adjust height
+        layout.addWidget(self.table)
+
+        add_row_layout = QHBoxLayout()
+        add_row_label = QLabel("Add a new line item:")
+        add_row_label.setFont(QFont("Arial", 14))
+        add_row_btn = QPushButton("Add Row")
+        add_row_btn.setFixedWidth(120)
+        add_row_btn.clicked.connect(self.add_line_item_row)
+        add_row_layout.addWidget(add_row_label)
+        add_row_layout.addSpacing(10)
+        add_row_layout.addWidget(add_row_btn)
+        add_row_layout.addStretch()
+        layout.addLayout(add_row_layout)
+
+        group.setLayout(layout)
+        self.scroll_layout.addWidget(group)
+        self.scroll_layout.addSpacing(15)
+
+
+
+
+    def add_line_item_row(self):
+        row_pos = self.table.rowCount()
+        self.table.insertRow(row_pos)
+
+        # Line No
+        line_no = QTableWidgetItem(str(row_pos + 1))
+        line_no.setFlags(Qt.ItemFlag.ItemIsEnabled)
+        line_no.setFont(QFont("Arial", 13))
+        self.table.setItem(row_pos, 0, line_no)
+
+        # Part Number, Description, Quantity, Unit Rate
+        for col in range(1, 5):
+            item = QTableWidgetItem("0" if col in [3,4] else "")
+            item.setFont(QFont("Arial", 13))
+            self.table.setItem(row_pos, col, item)
+
+        # Total
+        total = QTableWidgetItem("0.00")
+        total.setFlags(Qt.ItemFlag.ItemIsEnabled)
+        total.setFont(QFont("Arial", 13))
+        self.table.setItem(row_pos, 5, total)
+
+        # Adjust the table height dynamically
+        self.table.setFixedHeight(self.table.verticalHeader().length() + self.table.horizontalHeader().height() + 5)
+
+        # Connect signals safely
+        try:
+            self.table.itemChanged.disconnect()
+        except:
+            pass
+        self.table.itemChanged.connect(self.update_all_line_totals)
+
+
+    def update_all_line_totals(self, changed_item=None):
+        self.table.blockSignals(True)
+        for row in range(self.table.rowCount()):
+            qty_item = self.table.item(row, 3)
+            rate_item = self.table.item(row, 4)
+            total_item = self.table.item(row, 5)
+
+            # Ensure items exist
+            if qty_item is None:
+                qty_item = QTableWidgetItem("0")
+                self.table.setItem(row, 3, qty_item)
+            if rate_item is None:
+                rate_item = QTableWidgetItem("0")
+                self.table.setItem(row, 4, rate_item)
+            if total_item is None:
+                total_item = QTableWidgetItem("0.00")
+                total_item.setFlags(Qt.ItemFlag.ItemIsEnabled)
+                self.table.setItem(row, 5, total_item)
+
+            # Safely parse numbers
+            try:
+                qty = float(qty_item.text())
+            except:
+                qty = 0.0
+            try:
+                rate = float(rate_item.text())
+            except:
+                rate = 0.0
+            total_item.setText(f"{qty * rate:.2f}")
+
+        self.table.blockSignals(False)
+        self.update_totals()
+
+    def add_totals_section(self):
+        group = QGroupBox("Totals")
+        layout = QVBoxLayout()
+
+        # Total Amount
+        total_layout = QVBoxLayout()
+        total_label = QLabel("Total Amount (USD)")
+        total_label.setFont(QFont("Arial", 14, QFont.Weight.Bold))
+        self.total_amount_edit = QLineEdit("0.00")
+        self.total_amount_edit.setReadOnly(True)
+        self.total_amount_edit.setFont(QFont("Arial", 14))
+        total_layout.addWidget(total_label)
+        total_layout.addWidget(self.total_amount_edit)
+        layout.addLayout(total_layout)
+
+        # Receivable (50%)
+        rec_layout = QVBoxLayout()
+        rec_label = QLabel("Receivable Amount (50%)")
+        rec_label.setFont(QFont("Arial", 14, QFont.Weight.Bold))
+        self.receivable_edit = QLineEdit("0.00")
+        self.receivable_edit.setReadOnly(True)
+        self.receivable_edit.setFont(QFont("Arial", 14))
+        self.receivable_text_edit = QLineEdit("")
+        self.receivable_text_edit.setReadOnly(True)
+        self.receivable_text_edit.setFont(QFont("Arial", 14))
+        rec_layout.addWidget(rec_label)
+        rec_layout.addWidget(self.receivable_edit)
+        rec_layout.addWidget(self.receivable_text_edit)
+        layout.addLayout(rec_layout)
+
+        # Received / Balance
+        received_layout = QVBoxLayout()
+        recvd_label = QLabel("Received Amount")
+        recvd_label.setFont(QFont("Arial", 14, QFont.Weight.Bold))
+        self.received_edit = QLineEdit("0.00")
+        self.received_edit.setFont(QFont("Arial", 14))
+        self.received_edit.textChanged.connect(self.update_balance)
+        received_layout.addWidget(recvd_label)
+        received_layout.addWidget(self.received_edit)
+        layout.addLayout(received_layout)
+
+        balance_layout = QVBoxLayout()
+        balance_label = QLabel("Balance Amount")
+        balance_label.setFont(QFont("Arial", 14, QFont.Weight.Bold))
+        self.balance_edit = QLineEdit("0.00")
+        self.balance_edit.setFont(QFont("Arial", 14))
+        self.balance_edit.setReadOnly(True)
+        balance_layout.addWidget(balance_label)
+        balance_layout.addWidget(self.balance_edit)
+        layout.addLayout(balance_layout)
+
+        # Dropdowns
+        dropdown_layout = QHBoxLayout()
+        dropdowns = {
+            "Country of Origin": ["India","USA","China"],
+            "Port of Embarkation": ["Nhava Sheva","Mumbai","Chennai"],
+            "Port of Discharge": ["Los Angeles","New York","Chicago"]
+        }
+        for label_text, values in dropdowns.items():
+            v = QVBoxLayout()
+            label = QLabel(label_text)
+            label.setFont(QFont("Arial", 14, QFont.Weight.Bold))
+            combo = QComboBox()
+            combo.setFont(QFont("Arial", 14))
+            combo.addItems(values)
+            v.addWidget(label)
+            v.addWidget(combo)
+            dropdown_layout.addLayout(v)
+            self.controllers[label_text.lower().replace(" ","_")] = combo
+        layout.addLayout(dropdown_layout)
+
+        group.setLayout(layout)
+        self.scroll_layout.addWidget(group)
+        self.scroll_layout.addSpacing(15)
+
+    def update_totals(self):
+        total = 0
+        for row in range(self.table.rowCount()):
+            try:
+                total += float(self.table.item(row,5).text())
+            except:
+                pass
+        self.total_amount_edit.setText(f"{total:.2f}")
+        receivable = total*0.5
+        self.receivable_edit.setText(f"{receivable:.2f}")
+        self.receivable_text_edit.setText(f"{p.number_to_words(int(receivable))} dollars")
+        self.update_balance()
+
+    def update_balance(self):
+        try:
+            receivable = float(self.receivable_edit.text())
+            received = float(self.received_edit.text())
+            balance = receivable - received
+            self.balance_edit.setText(f"{balance:.2f}")
+        except:
+            self.balance_edit.setText("0.00")
 
     def handle_submit(self):
-        unfilled = []
-        for field, controller in self.controllers.items():
-            if not controller.text().strip():
-                unfilled.append(field)
+        self.update_all_line_totals()  # Ensure totals are updated
+        data = {}
+        data["date"] = self.date_edit.date().toString("dd-MM-yyyy")
+        for key, ctrl in self.controllers.items():
+            if isinstance(ctrl, (QLineEdit, QTextEdit)):
+                data[key] = ctrl.text() if isinstance(ctrl, QLineEdit) else ctrl.toPlainText()
+            elif isinstance(ctrl, QComboBox):
+                data[key] = ctrl.currentText()
 
-        if unfilled:
-            msg = QMessageBox()
-            msg.setIcon(QMessageBox.Icon.Warning)
-            msg.setWindowTitle("Unfilled Fields")
-            msg.setText("Please fill the following fields:")
-            msg.setDetailedText("\n".join(unfilled))
-            msg.exec()
-        else:
-            data = {field: controller.text() for field, controller in self.controllers.items()}
-            print("Form Data:", data)
+        items = []
+        for row in range(self.table.rowCount()):
+            items.append({
+                "line_no": self.table.item(row,0).text(),
+                "part_number": self.table.item(row,1).text(),
+                "description": self.table.item(row,2).text(),
+                "quantity": self.table.item(row,3).text(),
+                "unit_rate": self.table.item(row,4).text(),
+                "total": self.table.item(row,5).text()
+            })
+        data["line_items"] = items
+        data["total_amount"] = self.total_amount_edit.text()
+        data["receivable_amount"] = self.receivable_edit.text()
+        data["receivable_amount_text"] = self.receivable_text_edit.text()
+        data["received_amount"] = self.received_edit.text()
+        data["balance_amount"] = self.balance_edit.text()
 
-            # Push to MongoDB using your second module
-            database.push_to_mongo(data)
-
-            msg = QMessageBox()
-            msg.setIcon(QMessageBox.Icon.Information)
-            msg.setWindowTitle("Success")
-            msg.setText("Invoice form submitted successfully and pushed to MongoDB!")
-            msg.exec()
+        database.push_to_mongo(data)
+        msg = QMessageBox()
+        msg.setIcon(QMessageBox.Icon.Information)
+        msg.setWindowTitle("Success")
+        msg.setText("Invoice form submitted successfully and pushed to MongoDB!")
+        msg.exec()
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)

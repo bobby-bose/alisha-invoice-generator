@@ -10,7 +10,7 @@ from bson.objectid import ObjectId
 from datetime import datetime
 
 # ---------------- MongoDB Config ----------------
-MONGO_URL = "mongodb+srv://username:password@cluster.rnhig2f.mongodb.net/?retryWrites=true&w=majority&appName=cluster"
+MONGO_URL = "mongodb+srv://admin:admin@cluster.rnhig2f.mongodb.net/?retryWrites=true&w=majority&appName=cluster"
 DB_NAME = "mamshi"
 COLLECTION_NAME = "report_two"
 
@@ -25,27 +25,28 @@ class PackingListFormEdit(QWidget):
 
         self.doc_id = doc_id
 
+        # ---------------- Fields ----------------
         # Main fields
         self.fields = [
-            "consignee_address", "date", "po_no", "tax_no",
-            "packing_list_no", "delivery_address", "loding_port", "discharge_port",
-            "hs_code", "no_boxes", "sum_net_weight", "sum_gross_weight"
+            "consignee_address", "delivery_address", "date", "po_no",
+            "tax_no", "packing_list_no", "loding_port", "discharge_port",
+            "hs_code", "total_boxes", "total_net_weight", "total_gross_weight"
         ]
 
-        # Item-level fields (repeatable)
-        self.item_fields = [
-            "item_number", "box_number", "material", "qty",
-            "dimension", "net_weight", "gross_weight"
-        ]
+        # Item-level fields
+        self.item_fields = ["item_number", "material", "packaging_description"]
+
+        # Box-level fields
+        self.box_fields = ["box_number", "quantity", "length", "width", "height", "net_weight", "gross_weight"]
 
         self.controllers = {}   # main fields
-        self.item_rows = []     # list of dictionaries for item rows
+        self.item_rows = []     # list of item dictionaries
 
         self.doc_data = self.fetch_doc_data()
         self.initUI()
 
+    # ---------------- Fetch data ----------------
     def fetch_doc_data(self):
-        """Fetch document from MongoDB"""
         try:
             client = MongoClient(MONGO_URL)
             db = client[DB_NAME]
@@ -56,6 +57,7 @@ class PackingListFormEdit(QWidget):
             print("❌ MongoDB Error:", str(e))
             return {}
 
+    # ---------------- UI ----------------
     def initUI(self):
         main_layout = QVBoxLayout()
         main_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
@@ -67,7 +69,7 @@ class PackingListFormEdit(QWidget):
         logo = QLabel()
         pixmap = QPixmap("wwe.jpg")
         if not pixmap.isNull():
-            pixmap = pixmap.scaled(350, 350, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+            pixmap = pixmap.scaled(250, 250, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
             logo.setPixmap(pixmap)
         else:
             logo.setText("No Logo")
@@ -122,24 +124,13 @@ class PackingListFormEdit(QWidget):
             self.scroll_layout.addLayout(row_layout)
             self.scroll_layout.addSpacing(15)
 
-        # ---------------- Item Rows Header ----------------
-        header = QHBoxLayout()
-        for field in self.item_fields:
-            label = QLabel(field.replace("_", " ").title())
-            label.setFont(QFont("Arial", 12, QFont.Weight.Bold))
-            label.setFixedWidth(150)
-            header.addWidget(label)
-        header.addWidget(QLabel(""))  # placeholder for "+" button
-        self.scroll_layout.addLayout(header)
-        self.scroll_layout.addSpacing(5)
-
-        # ---------------- Item Rows ----------------
+        # ---------------- Items & Boxes ----------------
         existing_items = self.doc_data.get("items", [])
         if existing_items:
             for item in existing_items:
                 self.add_item_row(item)
         else:
-            self.add_item_row()  # at least one row
+            self.add_item_row()
 
         scroll_content.setLayout(self.scroll_layout)
         scroll.setWidget(scroll_content)
@@ -156,7 +147,7 @@ class PackingListFormEdit(QWidget):
 
         self.setLayout(main_layout)
 
-    # ---------------- Main field layout ----------------
+    # ---------------- Main Field Layout ----------------
     def build_field_layout(self, field_name):
         layout = QVBoxLayout()
         label = QLabel(field_name.replace("_", " ").title())
@@ -170,43 +161,85 @@ class PackingListFormEdit(QWidget):
         layout.addWidget(line_edit)
         return layout
 
-    # ---------------- Add item row ----------------
+    # ---------------- Add Item Row ----------------
     def add_item_row(self, item_data=None):
-        row_layout = QHBoxLayout()
-        row_controllers = {}
+        item_layout = QVBoxLayout()
+        item_controllers = {}
 
+        # Item-level fields
         for field in self.item_fields:
+            sub_layout = QVBoxLayout()
+            label = QLabel(field.replace("_", " ").title())
+            label.setFont(QFont("Arial", 12, QFont.Weight.Bold))
             line_edit = QLineEdit()
-            line_edit.setFixedWidth(150)
+            line_edit.setFixedHeight(30)
             if item_data and field in item_data:
                 line_edit.setText(str(item_data[field]))
+            sub_layout.addWidget(label)
+            sub_layout.addWidget(line_edit)
+            item_layout.addLayout(sub_layout)
+            item_controllers[field] = line_edit
+
+        # Boxes for this item
+        boxes_layout = QVBoxLayout()
+        item_controllers["boxes"] = []
+        existing_boxes = item_data.get("boxes", []) if item_data else []
+
+        if existing_boxes:
+            for box in existing_boxes:
+                self.add_box_row(boxes_layout, item_controllers, box)
+        else:
+            self.add_box_row(boxes_layout, item_controllers)
+
+        # "+" button to add new box
+        add_box_btn = QPushButton("+ Add Box")
+        add_box_btn.setFixedWidth(120)
+        add_box_btn.clicked.connect(lambda _, l=boxes_layout, c=item_controllers: self.add_box_row(l, c))
+        boxes_layout.addWidget(add_box_btn)
+        item_layout.addLayout(boxes_layout)
+        item_layout.addSpacing(10)
+
+        # Wrap item in a GroupBox
+        group_title = f"Item {item_data.get('item_number', len(self.item_rows)+1) if item_data else len(self.item_rows)+1}"
+        group = QGroupBox(group_title)
+        group.setLayout(item_layout)
+        self.scroll_layout.addWidget(group)
+        self.scroll_layout.addSpacing(10)
+
+        self.item_rows.append(item_controllers)
+
+    # ---------------- Add Box Row ----------------
+    def add_box_row(self, layout, item_controllers, box_data=None):
+        row_layout = QHBoxLayout()
+        box_controllers = {}
+        for field in self.box_fields:
+            line_edit = QLineEdit()
+            line_edit.setFixedWidth(100)
+            if box_data and field in box_data:
+                line_edit.setText(str(box_data[field]))
             row_layout.addWidget(line_edit)
-            row_controllers[field] = line_edit
-
-        # "+" button to add another row
-        add_btn = QPushButton("+")
-        add_btn.setFixedWidth(40)
-        add_btn.clicked.connect(self.add_item_row)
-        row_layout.addWidget(add_btn)
-
-        self.item_rows.append(row_controllers)
-        self.scroll_layout.addLayout(row_layout)
-        self.scroll_layout.addSpacing(5)
+            box_controllers[field] = line_edit
+        item_controllers["boxes"].append(box_controllers)
+        layout.addLayout(row_layout)
 
     # ---------------- Submit ----------------
     def handle_submit(self):
         unfilled = []
 
-        # Validate main fields
+        # Main fields
         for field, controller in self.controllers.items():
             if not controller.text().strip():
                 unfilled.append(field)
 
-        # Validate item rows
-        for idx, row in enumerate(self.item_rows, start=1):
-            for field, controller in row.items():
-                if not controller.text().strip():
-                    unfilled.append(f"Row {idx} - {field}")
+        # Items & Boxes
+        for idx, item in enumerate(self.item_rows, start=1):
+            for field in self.item_fields:
+                if not item[field].text().strip():
+                    unfilled.append(f"Item {idx} - {field}")
+            for box_idx, box in enumerate(item["boxes"], start=1):
+                for field in self.box_fields:
+                    if not box[field].text().strip():
+                        unfilled.append(f"Item {idx} Box {box_idx} - {field}")
 
         if unfilled:
             msg = QMessageBox()
@@ -217,9 +250,14 @@ class PackingListFormEdit(QWidget):
             msg.exec()
             return
 
-        # Prepare data to update
+        # Prepare data to update MongoDB
         data = {f: c.text() for f, c in self.controllers.items()}
-        data["items"] = [{f: c.text() for f, c in row.items()} for row in self.item_rows]
+        data["items"] = []
+        for item in self.item_rows:
+            item_data = {f: item[f].text() for f in self.item_fields}
+            item_data["boxes"] = [{f: box[f].text() for f in self.box_fields} for box in item["boxes"]]
+            data["items"].append(item_data)
+
         data["last_updated_date"] = datetime.now().strftime("%Y-%m-%d")
         data["last_updated_time"] = datetime.now().strftime("%H:%M:%S")
 
@@ -229,15 +267,17 @@ class PackingListFormEdit(QWidget):
             collection = db[COLLECTION_NAME]
             collection.update_one({"_id": ObjectId(self.doc_id)}, {"$set": data})
             QMessageBox.information(self, "Success", "✅ Packing List updated successfully!")
-            self.updated.emit()  # notify parent window
+            self.updated.emit()
             self.close()
         except Exception as e:
             QMessageBox.critical(self, "Error", f"Failed to update MongoDB: {str(e)}")
 
 
+# ---------------- MAIN ----------------
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    # replace with a real ObjectId for testing
-    window = PackingListFormEdit("68e4a69b7c179cbe88953287")
+    # Replace with a valid ObjectId from your MongoDB collection
+    window = PackingListFormEdit("replace_with_actual_id")
     window.show()
     sys.exit(app.exec())
+

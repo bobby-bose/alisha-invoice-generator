@@ -47,9 +47,9 @@ class Dashboard(QMainWindow):
         button_layout.setContentsMargins(50, 20, 20, 20)  # Top and left padding
 
         # Buttons
-        self.btn_packing = QPushButton("Packing List")
-        self.btn_export = QPushButton("Export Form")
-        self.btn_invoice = QPushButton("Invoice Form")
+        self.btn_packing = QPushButton("Packaging List")
+        self.btn_export = QPushButton("ZC/IN")
+        self.btn_invoice = QPushButton("Proforma Invoice")
 
         for btn in [self.btn_packing, self.btn_export, self.btn_invoice]:
             btn.setFont(QFont("Arial", 25, QFont.Weight.Bold))
